@@ -112,12 +112,14 @@ def get_model_stats():
         if checkpoint_name in checkpoints:
             checkpoint_path = os.path.join(checkpoint_folder, checkpoint_name)
             checkpoint = torch.load(checkpoint_path)
-            return checkpoint_path, checkpoint['a']['classifier2.classifier.0.weight'].size()[0]
-    if use_gpu:
-        del checkpoint
-        torch.cuda.empty_cache()
+            output_dim = checkpoint['a']['classifier2.classifier.0.weight'].size()[0]
+            if use_gpu:
+                del checkpoint
+                torch.cuda.empty_cache()
+            return checkpoint_path, output_dim
 
     print('No checkpoint found.')
+    raise FileNotFoundError('Checkpoint {} not found in {}'.format(checkpoint_name, main_folder))
 
 
 ######################################################################
@@ -163,8 +165,9 @@ def extract_feature(model,dataloaders):
             f = f.data.cpu()
             ff = ff+f
 
-        ff[:, 0:512] = norm(ff[:, 0:512])
-        ff[:, 512:1024] = norm(ff[:, 512:1024])
+        if not opt.PCB:
+            ff[:, 0:512] = norm(ff[:, 0:512])
+            ff[:, 512:1024] = norm(ff[:, 512:1024])
 
         # norm feature
         if opt.PCB:
@@ -208,7 +211,7 @@ print('-------test-----------')
 ###load config###
 config_path = os.path.join('../outputs',name,'config.yaml')
 with open(config_path, 'r') as stream:
-    config = yaml.load(stream)
+    config = yaml.safe_load(stream)
 
 model_path, output_dim = get_model_stats()
 
