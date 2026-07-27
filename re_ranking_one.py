@@ -40,7 +40,6 @@ def k_reciprocal_neigh( initial_rank, i, k1):
 def re_ranking_one(original_dist, k1=20, k2=6, lambda_value=0.3):
     # The following naming, e.g. gallery_num, is different from outer scope.
     # Don't care about it.
-    original_dist = 2. - 2 * original_dist   # change the cosine similarity metric to euclidean similarity metric
     original_dist = np.power(original_dist, 2).astype(np.float32)
     original_dist = np.transpose(1. * original_dist/np.max(original_dist,axis = 0))
     V = np.zeros_like(original_dist).astype(np.float32)
