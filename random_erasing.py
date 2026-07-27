@@ -31,7 +31,6 @@ class RandomErasing(object):
         self.sl = sl
         self.sh = sh
         self.r1 = r1
-        random.seed(7)
 
     def __call__(self, img):
 
