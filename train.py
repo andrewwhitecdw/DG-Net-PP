@@ -78,7 +78,7 @@ train_writer = tensorboardX.SummaryWriter(os.path.join(opts.output_path + "/logs
 output_directory = os.path.join(opts.output_path + "/outputs", model_name)
 if not os.path.exists(output_directory):
     os.makedirs(output_directory)
-else:
+elif not opts.resume:
     shutil.rmtree(output_directory)
     os.makedirs(output_directory)
 shutil.copyfile(opts.config, os.path.join(output_directory, 'config.yaml')) # copy config file to output folder
