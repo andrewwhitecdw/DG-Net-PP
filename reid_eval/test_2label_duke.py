@@ -112,10 +112,12 @@ def get_model_stats():
         if checkpoint_name in checkpoints:
             checkpoint_path = os.path.join(checkpoint_folder, checkpoint_name)
             checkpoint = torch.load(checkpoint_path)
-            return checkpoint_path, checkpoint['a']['classifier2.classifier.0.weight'].size()[0]
-    if use_gpu:
-        del checkpoint
-        torch.cuda.empty_cache()
+            output_dim = checkpoint['a']['classifier2.classifier.0.weight'].size()[0]
+            if use_gpu:
+                del checkpoint
+                torch.cuda.empty_cache()
+            return checkpoint_path, output_dim
+    return None, None
 
 
 ######################################################################
@@ -203,7 +205,7 @@ print('-------test-----------')
 ###load config###
 config_path = os.path.join('../outputs',name,'config.yaml')
 with open(config_path, 'r') as stream:
-    config = yaml.load(stream)
+    config = yaml.safe_load(stream)
 
 model_path, output_dim = get_model_stats()
 
