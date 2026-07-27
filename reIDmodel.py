@@ -215,7 +215,7 @@ class ft_net_dense(nn.Module):
 
     def forward(self, x):
         x = self.model.features(x)
-        x = torch.squeeze(x)
+        x = x.view(x.size(0), -1)
         x = self.classifier(x)
         return x
     
@@ -247,7 +247,7 @@ class ft_net_middle(nn.Module):
         # x1  n*2048*1*1
         x1 = self.model.avgpool(x)
         x = torch.cat((x0,x1),1)
-        x = torch.squeeze(x)
+        x = x.view(x.size(0), -1)
         x = self.classifier(x)
         return x
 
@@ -270,7 +270,7 @@ class PCB(nn.Module):
         # define 4 classifiers
         for i in range(self.part):
             name = 'classifier'+str(i)
-            setattr(self, name, ClassBlock(2048, class_num, True, False, 256))
+            setattr(self, name, ClassBlock(2048, class_num, droprate=False, relu=False, num_bottleneck=256))
 
     def forward(self, x):
         x = self.model.conv1(x)
