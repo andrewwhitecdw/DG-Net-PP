@@ -50,7 +50,7 @@ class IdDis(nn.Module):
     def forward(self, x):
         outputs = self.fcnet(x)
         outputs = torch.squeeze(outputs)
-        return outputs
+        return [outputs]
 
     def calc_dis_loss_ab(self, input_s, input_t):
         outs0 = self.forward(input_s)
@@ -303,7 +303,7 @@ class AdaINGen(nn.Module):
         elif which_dec =='parallel':
             self.dec = Decoder(n_downsample, n_res, self.output_dim, 3, dropout=dropout, res_norm='adain', activ=activ, pad_type=pad_type, res_type='parallel', non_local = non_local, fp16 = fp16)
         else:
-            ('unkonw decoder type')
+            assert 0, "Unsupported decoder type: {}".format(which_dec)
 
         # MLP to generate AdaIN parameters
         self.mlp_w1 = MLP(id_dim, 2*self.output_dim, mlp_dim, 3, norm=mlp_norm, activ=activ)
