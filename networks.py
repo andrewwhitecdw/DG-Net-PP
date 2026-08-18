@@ -219,7 +219,10 @@ class MsImageDis(nn.Module):
             dis_interpolates = self.forward(interpolates) 
             gradient_penalty = self.compute_grad2(dis_interpolates, interpolates).mean()
             loss += LAMBDA*gradient_penalty
-            return loss
+            # WGAN already folds the gradient penalty into `loss`. Return a
+            # matching (loss, reg) tuple so callers can treat all GAN types uniformly.
+            reg = torch.zeros_like(loss)
+            return loss, reg
 
         for it, (out0, out1) in enumerate(zip(outs0, outs1)):
             if self.gan_type == 'lsgan':
@@ -373,7 +376,7 @@ class VAEGen(nn.Module):
 
     def forward(self, images):
         # This is a reduced VAE implementation where we assume the outputs are multivariate Gaussian distribution with mean = hiddens and std_dev = all ones.
-        hiddens = self.encode(images)
+        hiddens, _ = self.encode(images)
         if self.training == True:
             noise = Variable(torch.randn(hiddens.size()).cuda(hiddens.data.get_device()))
             images_recon = self.decode(hiddens + noise)
@@ -552,7 +555,7 @@ class ResBlock(nn.Module):
             model += [Parallel2dBlock(dim ,dim, 3, 1, 1, norm=norm, activation=activation, pad_type=pad_type)]
             model += [Parallel2dBlock(dim ,dim, 3, 1, 1, norm=norm, activation='none', pad_type=pad_type)]
         else:
-            ('unkown block type')
+            assert 0, "Unsupported res_type: {}".format(res_type)
         self.res_type = res_type
         self.model = nn.Sequential(*model)
         if res_type=='nonlocal':
@@ -1000,8 +1003,11 @@ class LayerNorm(nn.Module):
     def forward(self, x):
         shape = [-1] + [1] * (x.dim() - 1)
         if x.type() == 'torch.cuda.HalfTensor': # For Safety
-            mean = x.view(-1).float().mean().view(*shape)
-            std = x.view(-1).float().std().view(*shape)
+            # LayerNorm normalizes per sample over the remaining dimensions,
+            # so statistics must be computed independently per batch element
+            # rather than collapsed across the whole batch.
+            mean = x.view(x.size(0), -1).float().mean(1).view(*shape)
+            std = x.view(x.size(0), -1).float().std(1).view(*shape)
             mean = mean.half()
             std = std.half()
         else:
