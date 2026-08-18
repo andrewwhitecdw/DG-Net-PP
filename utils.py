@@ -67,11 +67,11 @@ def get_mix_data_loaders(conf):
     # generate two sample lists of two datasets with equal size
     if size_a > size_b:
         sel_idx = list(np.random.choice(size_a, size_b, replace=False))
-        a_idx = list(itemgetter(*sel_idx)(a_full_idx))
+        a_idx = [a_full_idx[i] for i in sel_idx]
         b_idx = b_full_idx.copy()
     elif size_b > size_a:
         sel_idx = list(np.random.choice(size_b, size_a, replace=False))
-        b_idx = list(itemgetter(*sel_idx)(b_full_idx))
+        b_idx = [b_full_idx[i] for i in sel_idx]
         a_idx = a_full_idx.copy()
     else:
         a_idx = a_full_idx.copy()
@@ -110,13 +110,13 @@ def get_mix_data_loaders(conf):
     bb_idx_b = bb_idx_b[:xx_num]
     ab_idx_a, ab_idx_b, ba_idx_a, ba_idx_b = [], [], [], []
     if sel_idx_ab_a != []:
-        ab_idx_a = list(itemgetter(*sel_idx_ab_a)(a_idx_a))  # batch ab for train_loader_a
+        ab_idx_a = [a_idx_a[i] for i in sel_idx_ab_a]
     if sel_idx_ab_b != []:
-        ab_idx_b = list(itemgetter(*sel_idx_ab_b)(b_idx_b))  # batch ab for train_loader_b
+        ab_idx_b = [b_idx_b[i] for i in sel_idx_ab_b]
     if sel_idx_ba_a != []:
-        ba_idx_a = list(itemgetter(*sel_idx_ba_a)(b_idx_a))  # batch ab for train_loader_a
+        ba_idx_a = [b_idx_a[i] for i in sel_idx_ba_a]
     if sel_idx_ba_b != []:
-        ba_idx_b = list(itemgetter(*sel_idx_ba_b)(a_idx_b))  # batch ab for train_loader_b
+        ba_idx_b = [a_idx_b[i] for i in sel_idx_ba_b]
 
     aa_thresh = conf['xx_port'] / 2
     bb_thresh = aa_thresh * 2
@@ -203,7 +203,7 @@ def get_data_loader_list(root, file_list, batch_size, train, new_size=None,
     transform_list = [transforms.RandomHorizontalFlip()] + transform_list if train else transform_list
     transform = transforms.Compose(transform_list)
     dataset = ImageFilelist(root, file_list, transform=transform)
-    loader = DataLoader(dataset=dataset, batch_size=batch_size, shuffle=True, drop_last=True, num_workers=num_workers)
+    loader = DataLoader(dataset=dataset, batch_size=batch_size, shuffle=True, drop_last=train, num_workers=num_workers)
     return loader
 
 def get_data_loader_folder(input_folder, batch_size, train, new_size=None,
@@ -217,7 +217,7 @@ def get_data_loader_folder(input_folder, batch_size, train, new_size=None,
     transform_list = [transforms.RandomHorizontalFlip()] + transform_list if train else transform_list
     transform = transforms.Compose(transform_list)
     dataset = ReIDFolder(input_folder, transform=transform)
-    loader = DataLoader(dataset=dataset, batch_size=batch_size, shuffle=True, drop_last=True, num_workers=num_workers)
+    loader = DataLoader(dataset=dataset, batch_size=batch_size, shuffle=True, drop_last=train, num_workers=num_workers)
     return loader
 
 def get_data_loader_folder_mix(input_folder, idx_list, batch_size, train, new_size=None,
@@ -236,7 +236,7 @@ def get_data_loader_folder_mix(input_folder, idx_list, batch_size, train, new_si
 
 def get_config(config):
     with open(config, 'r') as stream:
-        return yaml.load(stream)
+        return yaml.safe_load(stream)
 
 
 def eformat(f, prec):
@@ -420,7 +420,7 @@ def get_scheduler(optimizer, hyperparameters, iterations=-1):
         scheduler = lr_scheduler.MultiStepLR(optimizer, milestones=[step, step+step//2, step+step//2+step//4],
                                         gamma=hyperparameters['gamma'], last_epoch=iterations)
     else:
-        return NotImplementedError('learning rate policy [%s] is not implemented', hyperparameters['lr_policy'])
+        raise NotImplementedError('learning rate policy [%s] is not implemented' % hyperparameters['lr_policy'])
     return scheduler
 
 
