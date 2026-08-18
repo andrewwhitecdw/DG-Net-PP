@@ -75,7 +75,7 @@ def update_teacher(model_s, model_t, alpha=0.999):
     for param_s, param_t in zip(model_s.parameters(), model_t.parameters()):
         param_t.data.mul_(alpha).add_(1 - alpha, param_s.data)
 
-def predict_label(teacher_models, inputs, num_class, alabel, slabel, teacher_style=0):
+def predict_label(teacher_models, inputs, num_class, alabel, slabel, teacher_style=0, alpha=0.5):
 # teacher_style:
 # 0: Our smooth dynamic label
 # 1: Pseudo label, hard dynamic label
@@ -94,7 +94,7 @@ def predict_label(teacher_models, inputs, num_class, alabel, slabel, teacher_sty
             if count==0:
                 outputs_t = outputs_t1 + outputs_t2
             else:
-                outputs_t = outputs_t * opt.alpha  # old model decay
+                outputs_t = outputs_t * alpha  # old model decay
                 outputs_t += outputs_t1 + outputs_t2
             count +=2
     elif teacher_style == 1:  # dynamic one-hot  label
@@ -108,7 +108,7 @@ def predict_label(teacher_models, inputs, num_class, alabel, slabel, teacher_sty
             if count==0:
                 outputs_t = outputs_t1 + outputs_t2
             else:
-                outputs_t = outputs_t * opt.alpha  # old model decay
+                outputs_t = outputs_t * alpha  # old model decay
                 outputs_t += outputs_t1 + outputs_t2
             count +=2
         _, dlabel = torch.max(outputs_t.data, 1)
@@ -132,7 +132,7 @@ def predict_label(teacher_models, inputs, num_class, alabel, slabel, teacher_sty
             if count==0:
                 outputs_t = outputs_t1 + outputs_t2
             else:
-                outputs_t = outputs_t * opt.alpha  # old model decay
+                outputs_t = outputs_t * alpha  # old model decay
                 outputs_t += outputs_t1 + outputs_t2
             count +=2
         mask = torch.zeros(outputs_t.shape)
@@ -160,7 +160,7 @@ def load_network(network, name):
 def load_config(name):
     config_path = os.path.join('./models',name,'opts.yaml')
     with open(config_path, 'r') as stream:
-        config = yaml.load(stream)
+        config = yaml.load(stream, Loader=yaml.SafeLoader)
     return config
 
 def norm(f, dim = 1):
@@ -461,12 +461,12 @@ class DGNetpp_Trainer(nn.Module):
             if hyperparameters['ID_style'] == 'normal':
                 _, p_a_student, _ = self.id_a(scale2(x_ba_copy))
                 p_a_student = log_sm(p_a_student)
-                p_a_teacher = predict_label(self.teacher_model, scale2(x_ba_copy))
+                p_a_teacher = predict_label(self.teacher_model, scale2(x_ba_copy), num_class=hyperparameters['ID_class_a'], alabel=l_a, slabel=l_b)
                 self.loss_teacher = self.criterion_teacher(p_a_student, p_a_teacher) / p_a_student.size(0)
 
                 _, p_b_student, _ = self.id_b(scale2(x_ab_copy))
                 p_b_student = log_sm(p_b_student)
-                p_b_teacher = predict_label(self.teacher_model, scale2(x_ab_copy))
+                p_b_teacher = predict_label(self.teacher_model, scale2(x_ab_copy), num_class=hyperparameters['ID_class_a'], alabel=l_b, slabel=l_a)
                 self.loss_teacher += self.criterion_teacher(p_b_student, p_b_teacher) / p_b_student.size(0)
             elif hyperparameters['ID_style'] == 'AB':
                 # normal teacher-student loss
@@ -681,12 +681,12 @@ class DGNetpp_Trainer(nn.Module):
             if hyperparameters['ID_style'] == 'normal':
                 _, p_a_student, _ = self.id_a(scale2(x_ba_copy))
                 p_a_student = log_sm(p_a_student)
-                p_a_teacher = predict_label(self.teacher_model, scale2(x_ba_copy))
+                p_a_teacher = predict_label(self.teacher_model, scale2(x_ba_copy), num_class=hyperparameters['ID_class_a'], alabel=l_a, slabel=l_b)
                 self.loss_teacher = self.criterion_teacher(p_a_student, p_a_teacher) / p_a_student.size(0)
 
                 _, p_b_student, _ = self.id_a(scale2(x_ab_copy))
                 p_b_student = log_sm(p_b_student)
-                p_b_teacher = predict_label(self.teacher_model, scale2(x_ab_copy))
+                p_b_teacher = predict_label(self.teacher_model, scale2(x_ab_copy), num_class=hyperparameters['ID_class_a'], alabel=l_b, slabel=l_a)
                 self.loss_teacher += self.criterion_teacher(p_b_student, p_b_teacher) / p_b_student.size(0)
             elif hyperparameters['ID_style'] == 'AB':
                 # normal teacher-student loss
